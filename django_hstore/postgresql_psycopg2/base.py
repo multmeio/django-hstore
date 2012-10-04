@@ -16,6 +16,16 @@ COMMENTS2 = re.compile(r'--.*?$', re.MULTILINE)
 
 
 class DatabaseCreation(DatabaseCreation):
+    # def __init__(self, *args, **kwargs):
+    #     """
+    #     workaround to get PG_VERSION from settings. 
+    #     ``_verison may be deprecated``
+    #     """
+    #     if not hasattr(self.connection, '_version') and \
+    #         hasattr(self.vendor, 'postgresql'):
+    #         self.connection._version = settings.PG_VERSION
+    #     super(DatabaseCreation, self).__init__(*args, **kwargs)
+
     def executescript(self, path, title='SQL'):
         """
         Load up a SQL script file and execute.
@@ -56,7 +66,7 @@ class DatabaseCreation(DatabaseCreation):
         if cursor.fetchone():
             # skip if already exists
             return
-        if self.connection._version[0:2]>=(9,1):
+        if settings.PG_VERSION>=(9,1):
             cursor.execute("create extension hstore;")
             self.connection.commit_unless_managed()
             return
