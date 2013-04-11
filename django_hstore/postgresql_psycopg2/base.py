@@ -18,7 +18,7 @@ COMMENTS2 = re.compile(r'--.*?$', re.MULTILINE)
 class DatabaseCreation(DatabaseCreation):
     # def __init__(self, *args, **kwargs):
     #     """
-    #     workaround to get PG_VERSION from settings. 
+    #     workaround to get PG_VERSION from settings.
     #     ``_verison may be deprecated``
     #     """
     #     if not hasattr(self.connection, '_version') and \
@@ -135,6 +135,33 @@ class DatabaseCreation(DatabaseCreation):
         return super(DatabaseCreation, self).sql_indexes_for_field(model, f, style)
 
 
+class HstoreDatabaseOperations(DatabaseOperations):
+    def __init__(self, *args, **kwargs):
+        super(HstoreDatabaseOperations, self).__init__(*args, **kwargs)
+
+    def quote_name(self, name):
+        """
+        Method overrided because the in cases of hstorefield,
+        what is stored in a json-like, when we want to get the values
+        insides this structures, we accessing using:
+        hstorefield->'keyname'.
+        like:
+            hstorefield = {
+                'keyname': 'value'
+            }
+        and the Sql query:
+            select "table"."hstorefield"->'keyname'
+        Returning to us:
+            'value'
+        """
+        if "->'" in name:
+            return '"%s' % name.replace('->', '"->')
+
+        if name.startswith('"') and name.endswith('"'):
+            return name # Quoting once is enough.
+        return '"%s"' % name
+
+
 class DatabaseWrapper(DatabaseWrapper):
     """
     Custom DB wrapper to inject connection registration and DB creation code
@@ -143,6 +170,7 @@ class DatabaseWrapper(DatabaseWrapper):
     def __init__(self, *args, **params):
         super(DatabaseWrapper, self).__init__(*args, **params)
         self.creation = DatabaseCreation(self)
+        self.ops = HstoreDatabaseOperations(self)
 
     def _cursor(self):
         # ensure that we're connected
