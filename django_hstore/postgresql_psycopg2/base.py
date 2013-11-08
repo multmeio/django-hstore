@@ -68,7 +68,11 @@ class DatabaseCreation(DatabaseCreation):
             return
         if settings.PG_VERSION>=(9,1):
             cursor.execute("create extension hstore;")
-            self.connection.commit_unless_managed()
+            
+            if VERSION[:2] < (1, 6):
+                # NOTE: in django 1.6+ all transation are autocommit by default. 
+                # see: https://docs.djangoproject.com/en/dev/topics/db/transactions/#backwards-incompatibilities
+                self.connection.commit_unless_managed()
             return
         import glob
         import os

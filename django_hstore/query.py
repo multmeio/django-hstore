@@ -33,8 +33,10 @@ def update_query(method):
             rows = query.get_compiler(self.db).execute_sql(None)
             if forced_managed:
                 transaction.commit(using=self.db)
-            else:
-                transaction.commit_unless_managed(using=self.db)
+            elif VERSION[:2] < (1, 6):
+                # NOTE: in django 1.6+ all transation are autocommit by default. 
+                # see: https://docs.djangoproject.com/en/dev/topics/db/transactions/#backwards-incompatibilities
+                self.connection.commit_unless_managed()
         finally:
             if forced_managed:
                 transaction.leave_transaction_management(using=self.db)
